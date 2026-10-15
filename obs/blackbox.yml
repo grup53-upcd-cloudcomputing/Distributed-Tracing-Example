@@ -1,0 +1,12 @@
+modules:
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: true
+      tls_config:
+        ca_file: /host-ca/ca-certificates.crt
+        insecure_skip_verify: false

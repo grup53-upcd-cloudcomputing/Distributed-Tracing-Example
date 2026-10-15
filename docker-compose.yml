@@ -19,6 +19,9 @@ services:
     environment:
      - OTEL_SERVICE_NAME=dogs
      - OTEL_EXPORTER_OTLP_INSECURE=true
+     - OTEL_TRACES_EXPORTER=otlp
+     - OTEL_EXPORTER_OTLP_ENDPOINT=alloy:4317
+     - OTEL_EXPORTER_OTLP_PROTOCOL=grpc 
     networks:
       - kennels_net
   inventory:
@@ -26,6 +29,9 @@ services:
     environment:
      - OTEL_SERVICE_NAME=inventory
      - OTEL_EXPORTER_OTLP_INSECURE=true
+     - OTEL_TRACES_EXPORTER=otlp
+     - OTEL_EXPORTER_OTLP_ENDPOINT=alloy:4317
+     - OTEL_EXPORTER_OTLP_PROTOCOL=grpc 
     networks:
       - kennels_net
   kennels:
@@ -33,5 +39,8 @@ services:
     environment:
      - OTEL_SERVICE_NAME=kennels
      - OTEL_EXPORTER_OTLP_INSECURE=true
+     - OTEL_TRACES_EXPORTER=otlp
+     - OTEL_EXPORTER_OTLP_ENDPOINT=alloy:4317
+     - OTEL_EXPORTER_OTLP_PROTOCOL=grpc 
     networks:
       - kennels_net
