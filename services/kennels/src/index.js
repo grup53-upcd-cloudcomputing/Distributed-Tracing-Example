@@ -2,6 +2,10 @@ const express = require('express');
 const data = require('./data');
 const app = express();
 
+app.get('/api/v1/kennels/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/', async (req, res) => {
   const id = req.query.id;
   const name = await data.getKennelName(id);

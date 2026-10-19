@@ -1,0 +1,104 @@
+name: kennels_stack
+volumes:
+  grafana_data: {}
+  tempo_data: {}
+  grafana_dashboards: {}
+networks:
+  kennels_net:
+    external: true
+services:  
+  alloy:
+    image: grafana/alloy:v1.9.1
+    volumes:
+      - ./obs/config.alloy:/etc/alloy/config.alloy
+    command:
+    - run
+    - /etc/alloy/config.alloy
+    - --server.http.listen-addr=0.0.0.0:12345
+    ports:
+      - 12345:12345
+    networks:
+      - kennels_net
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    depends_on:
+      dashboard-init:
+        condition: service_completed_successfully
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./obs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_dashboards:/var/lib/grafana/dashboards:ro
+      - ./obs/grafana/blackbox-dashboards:/var/lib/grafana/blackbox-dashboards:ro
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor traceQLStreaming metricsSummary
+    networks:
+      - kennels_net
+  dashboard-init:
+    image: node:22-alpine
+    restart: "no"
+    command: ["node", "/scripts/download-dashboard.mjs"]
+    environment:
+      NODE_EXTRA_CA_CERTS: /host-ca/ca-certificates.crt
+    volumes:
+      - ./obs/grafana/download-dashboard.mjs:/scripts/download-dashboard.mjs:ro
+      - grafana_dashboards:/dashboards
+      - type: bind
+        source: ${HOST_CA_CERTIFICATES:-/etc/ssl/certs/ca-certificates.crt}
+        target: /host-ca/ca-certificates.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - kennels_net
+  tempo:
+    image: grafana/tempo:3.1.0
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./obs/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/var/tempo
+    networks:
+      - kennels_net
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./obs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+    networks:
+      - kennels_net
+  blackbox-exporter:
+    image: quay.io/prometheus/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ./obs/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+      - type: bind
+        source: ${HOST_CA_CERTIFICATES:-/etc/ssl/certs/ca-certificates.crt}
+        target: /host-ca/ca-certificates.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - kennels_net
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.10.2
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($|/)"
