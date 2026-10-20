@@ -19,7 +19,7 @@ El error rate es de 29.08 (siendo el ratio 41.52)
 
 Se estan generando aproximadamente 30 iteraciones por segundo
 
-Aparte del problema de errores. Se ve una latencia bastante alta en /inventory
+Aparte del problema de errores. La traza muestra que middleware-anonymous dura unos 232 ms porque engloba llamadas a /inventory y /dogs de unos 100 ms cada una
 
 ![alt text](img/image-4.png)
 
